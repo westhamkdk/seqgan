@@ -8,23 +8,26 @@ from dis_dataloader import Dis_dataloader
 from text_classifier import TextCNN
 from rollout import ROLLOUT
 from target_lstm import TARGET_LSTM
-import cPickle
+import pickle
+import os
 
 #########################################################################################
 #  Generator  Hyper-parameters
 #########################################################################################
 EMB_DIM = 32
 HIDDEN_DIM = 32
-SEQ_LENGTH = 20
+SEQ_LENGTH = 64
 START_TOKEN = 0
 
 PRE_EPOCH_NUM = 240
+# PRE_EPOCH_NUM = 5
 TRAIN_ITER = 1  # generator
 SEED = 88
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 ##########################################################################################
 
-TOTAL_BATCH = 800
+TOTAL_BATCH = 300
+# TOTAL_BATCH = 800
 
 #########################################################################################
 #  Discriminator  Hyper-parameters
@@ -38,13 +41,18 @@ dis_l2_reg_lambda = 0.2
 # Training parameters
 dis_batch_size = 64
 dis_num_epochs = 3
-dis_alter_epoch = 50
+# dis_num_epochs = 1
 
-positive_file = 'save/real_data.txt'
-negative_file = 'target_generate/generator_sample.txt'
-eval_file = 'target_generate/eval_file.txt'
+# dis_alter_epoch = 50
+dis_alter_epoch = 25
 
-generated_num = 10000
+# kdk change here
+positive_file = 'save/midi_trans.pkl'
+negative_file = 'target_generate/midi_trans_neg.pkl'
+# eval_file = 'target_generate/midi_trans_eval.pkl'
+logpath = 'log/seqgan_experiment-log1.txt'
+
+generated_num = 100
 
 
 ##############################################################################################
@@ -59,20 +67,21 @@ def get_trainable_model(num_emb):
     return PoemGen(num_emb, BATCH_SIZE, EMB_DIM, HIDDEN_DIM, SEQ_LENGTH, START_TOKEN)
 
 
-def generate_samples(sess, trainable_model, batch_size, generated_num, output_file):
+
+def generate_samples(sess, trainable_model, batch_size, generated_num, output_file, epoch = -1):
     #  Generated Samples
     generated_samples = []
-    start = time.time()
     for _ in range(int(generated_num / batch_size)):
         generated_samples.extend(trainable_model.generate(sess))
-    end = time.time()
-    # print 'Sample generation time:', (end - start)
 
-    with open(output_file, 'w') as fout:
-        for poem in generated_samples:
-            buffer = ' '.join([str(x) for x in poem]) + '\n'
-            # buffer = u''.join([words[x] for x in poem]).encode('utf-8') + '\n'
-            fout.write(buffer)
+    with open(output_file, "w") as fout:
+        pickle.dump(generated_samples, fout)
+
+    # with open(output_file, 'w') as fout:
+    #     for poem in generated_samples:
+    #         buffer = ' '.join([str(x) for x in poem]) + '\n'
+    #         fout.write(buffer)
+
 
 
 def target_loss(sess, target_lstm, data_loader):
@@ -113,6 +122,48 @@ def pre_train_epoch(sess, trainable_model, data_loader):
     return np.mean(supervised_g_losses)
 
 
+
+def initialize_parameters(inout_dim):
+
+    result_list = []
+    val = 32
+    layers = [[inout_dim, val],
+
+              [val, val],
+              [val, val],
+              [1, val],
+
+              [val, val],
+              [val, val],
+              [1, val],
+
+              [val, val],
+              [val, val],
+              [1, val],
+
+              [val, val],
+              [val, val],
+              [1, val],
+
+              [val, inout_dim],
+
+              [1, inout_dim]]
+
+    for arr_dim, layer_num in layers:
+        if arr_dim > 1:
+            tmp = np.random.random((arr_dim,layer_num)).astype(np.float32)
+        else:
+            tmp = np.random.random(layer_num,).astype(np.float32)
+
+
+        result_list.append(tmp)
+
+    result = np.array(result_list)
+
+    return result
+
+
+
 def main():
     random.seed(SEED)
     np.random.seed(SEED)
@@ -121,17 +172,21 @@ def main():
 
     gen_data_loader = Gen_Data_loader(BATCH_SIZE)
     likelihood_data_loader = Likelihood_data_loader(BATCH_SIZE)
-    vocab_size = 5000
+    vocab_size = 68
     dis_data_loader = Dis_dataloader()
 
     best_score = 1000
+    # load generator with parameters
     generator = get_trainable_model(vocab_size)
-    target_params = cPickle.load(open('save/target_params.pkl'))
-    target_lstm = TARGET_LSTM(vocab_size, 64, 32, 32, 20, 0, target_params)
+    target_params = initialize_parameters(vocab_size)
 
+    target_lstm = TARGET_LSTM(vocab_size, BATCH_SIZE, EMB_DIM, HIDDEN_DIM, SEQ_LENGTH, START_TOKEN, target_params)
+
+
+    # CNNs
     with tf.variable_scope('discriminator'):
         cnn = TextCNN(
-            sequence_length=20,
+            sequence_length=SEQ_LENGTH,
             num_classes=2,
             vocab_size=vocab_size,
             embedding_size=dis_embedding_dim,
@@ -150,12 +205,12 @@ def main():
     # config.gpu_options.per_process_gpu_memory_fraction = 0.5
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
-    sess.run(tf.global_variables_initializer)
+    sess.run(tf.global_variables_initializer())
 
-    generate_samples(sess, target_lstm, 64, 10000, positive_file)
+    # generate_samples(sess, target_lstm, 64, 10000, positive_file)
     gen_data_loader.create_batches(positive_file)
 
-    log = open('log/experiment-log.txt', 'w')
+    log = open(logpath, 'w')
     #  pre-train generator
     print 'Start pre-training...'
     log.write('pre-training...\n')
@@ -163,25 +218,34 @@ def main():
         print 'pre-train epoch:', epoch
         loss = pre_train_epoch(sess, generator, gen_data_loader)
         if epoch % 5 == 0:
-            generate_samples(sess, generator, BATCH_SIZE, generated_num, eval_file)
-            likelihood_data_loader.create_batches(eval_file)
+            file_name = 'target_generate/pretrain_epoch'+str(epoch)+'.pkl'
+            generate_samples(sess, generator, BATCH_SIZE, generated_num, file_name)
+            likelihood_data_loader.create_batches(file_name)
             test_loss = target_loss(sess, target_lstm, likelihood_data_loader)
             print 'pre-train epoch ', epoch, 'test_loss ', test_loss
             buffer = str(epoch) + ' ' + str(test_loss) + '\n'
             log.write(buffer)
 
-    generate_samples(sess, generator, BATCH_SIZE, generated_num, eval_file)
-    likelihood_data_loader.create_batches(eval_file)
+            if epoch % 100 !=0:
+                os.remove(file_name)
+
+    file_name = 'target_generate/pretrain_finished.pkl'
+    generate_samples(sess, generator, BATCH_SIZE, generated_num, file_name)
+    likelihood_data_loader.create_batches(file_name)
     test_loss = target_loss(sess, target_lstm, likelihood_data_loader)
     buffer = 'After pre-training:' + ' ' + str(test_loss) + '\n'
     log.write(buffer)
 
-    generate_samples(sess, generator, BATCH_SIZE, generated_num, eval_file)
-    likelihood_data_loader.create_batches(eval_file)
+    file_name = 'target_generate/supervise.pkl'
+    generate_samples(sess, generator, BATCH_SIZE, generated_num, file_name)
+    likelihood_data_loader.create_batches(file_name)
     significance_test(sess, target_lstm, likelihood_data_loader, 'significance/supervise.txt')
 
+    os.remove(file_name)
+
     print 'Start training discriminator...'
-    for _ in range(dis_alter_epoch):
+    for i in range(dis_alter_epoch):
+        print 'dis_alter_epoch : ' + str(i)
         generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
 
         #  train discriminator
@@ -216,12 +280,18 @@ def main():
             _, g_loss = sess.run([generator.g_updates, generator.g_loss], feed_dict=feed)
 
         if total_batch % 1 == 0 or total_batch == TOTAL_BATCH - 1:
-            generate_samples(sess, generator, BATCH_SIZE, generated_num, eval_file)
-            likelihood_data_loader.create_batches(eval_file)
+
+            file_name = 'target_generate/reinforce_batch'+str(total_batch)+'.pkl'
+
+            generate_samples(sess, generator, BATCH_SIZE, generated_num, file_name)
+            likelihood_data_loader.create_batches(file_name)
             test_loss = target_loss(sess, target_lstm, likelihood_data_loader)
             buffer = str(total_batch) + ' ' + str(test_loss) + '\n'
             print 'total_batch: ', total_batch, 'test_loss: ', test_loss
             log.write(buffer)
+
+            if total_batch % 50 != 0:
+                os.remove(file_name)
 
             if test_loss < best_score:
                 best_score = test_loss
@@ -233,6 +303,8 @@ def main():
         # generate for discriminator
         print 'Start training discriminator'
         for _ in range(5):
+        # for _ in range(2):
+
             generate_samples(sess, generator, BATCH_SIZE, generated_num, negative_file)
 
             dis_x_train, dis_y_train = dis_data_loader.load_train_data(positive_file, negative_file)
@@ -255,3 +327,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

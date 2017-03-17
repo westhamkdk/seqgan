@@ -118,7 +118,7 @@ class MidiReader(object):
 
 
 if __name__ == "__main__":
-    midi_dir = os.path.expanduser("~/midi-wavenet/data/midi")
+    midi_dir = os.path.expanduser("midi/")
 
     coord = tf.train.Coordinator()
     reader = MidiReader(midi_dir, coord,
@@ -135,7 +135,7 @@ if __name__ == "__main__":
 
     try:
         encoded = sess.run(midi_batch)
-        print encoded
+        print len(encoded[0][0])
     except KeyboardInterrupt:
         # Introduce a line break after ^C is displayed so save message
         # is on its own line.
