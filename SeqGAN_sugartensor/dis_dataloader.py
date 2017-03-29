@@ -19,27 +19,12 @@ class Dis_dataloader():
         """
         positive_examples = []
         negative_examples = []
-        # with open(positive_file)as fin:
-        #     for line in fin:
-        #         line = line.strip()
-        #         line = line.split()
-        #         parse_line = [int(x) for x in line]
-        #         positive_examples.append(parse_line)
 
         with open(positive_file, "rb") as output_file:
             positive_examples = pickle.load(output_file)
 
-        # with open(negative_file)as fin:
-        #     for line in fin:
-        #         line = line.strip()
-        #         line = line.split()
-        #         parse_line = [int(x) for x in line]
-        #         if len(parse_line) == 20:
-        #             negative_examples.append(parse_line)
-
         with open(negative_file, "rb") as output_file:
             negative_examples = pickle.load(output_file)
-
 
         # Split by words
         x_text = positive_examples + negative_examples

@@ -11,8 +11,6 @@ import pandas as pd
 
 
 class MIDI_IO():
-
-
     def __init__(self):
         self.note_info_path = 'note_mapping_dict.pkl'
         self.midi_training_path = "MLE_SeqGAN/save/midi_real.pkl"
@@ -36,7 +34,7 @@ class MIDI_IO():
             melody = mm.midi_file_to_melody(midi_file, steps_per_quarter=4)
             if melody.steps_per_bar % 3 != 0:
                 seq = np.array(melody._events)
-                tf.logging.info('Extract melody events from {} file'.format(midi_file))
+                tf.logging.info('Extract melody events from7 {} file'.format(midi_file))
             else:
                 tf.logging.warning('Melody of {} file has not target signature'.format(midi_file))
         except mm.MultipleTempoException as e:
@@ -122,11 +120,6 @@ class MIDI_IO():
 
         with open(self.note_info_path, "w") as openfile:
             pickle.dump(self.note_info_dict, openfile)
-
-
-
-
-
 
 
 

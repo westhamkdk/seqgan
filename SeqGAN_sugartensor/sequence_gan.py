@@ -10,6 +10,7 @@ from rollout import ROLLOUT
 from target_lstm import TARGET_LSTM
 import pickle
 import os
+from sg_text_classifier import SG_CNN
 
 
 
@@ -65,7 +66,8 @@ generated_num = 100
 
 class PoemGen(model.LSTM):
     def g_optimizer(self, *args, **kwargs):
-        return tf.train.AdamOptimizer()  # ignore learning rate
+        # replaces SGD to Adam
+        return tf.train.AdamOptimizer()
 
 
 def get_trainable_model(num_emb):
@@ -163,6 +165,12 @@ def initialize_parameters(inout_dim):
 
 
 
+def sg_main():
+    gen_data_loader = Gen_Data_loader(PRE_BATCH_SIZE)
+
+    tf.sg_train(log_interval=10, loss=loss, eval_metric=[acc], ep_size=data.train.num_batch,
+                save_dir='asset/train/rnn')
+
 def main():
     random.seed(PRE_SEED)
     np.random.seed(PRE_SEED)
@@ -174,7 +182,7 @@ def main():
     vocab_size = 68
     dis_data_loader = Dis_dataloader()
 
-    best_score = 1000
+    best_score = 1000 # might be replaced as iteration continues
     # load generator with parameters
     generator = get_trainable_model(vocab_size)
     target_params = initialize_parameters(vocab_size)
@@ -200,6 +208,11 @@ def main():
     dis_grads_and_vars = dis_optimizer.compute_gradients(cnn.loss, cnn_params, aggregation_method=2)
     dis_train_op = dis_optimizer.apply_gradients(dis_grads_and_vars, global_step=dis_global_step)
 
+    # with tf.variable_scope('discriminator'):
+    #     cnn = SG_CNN(sequence_length=SEQ_LENGTH, num_classes=2, vocab_size=vocab_size, embedding_size=dis_embedding_dim, filter_sizes=dis_filter_sizes, num_filters=dis_num_filters)
+
+
+
     config = tf.ConfigProto()
     # config.gpu_options.per_process_gpu_memory_fraction = 0.5
     config.gpu_options.allow_growth = True
@@ -215,7 +228,7 @@ def main():
     log.write('pre-training...\n')
     for epoch in xrange(PRE_EPOCH_NUM):
         print 'pre-train epoch:', epoch
-        loss = pre_train_epoch(sess, generator, gen_data_loader)
+        train_loss = pre_train_epoch(sess, generator, gen_data_loader)
         if epoch % 5 == 0:
             file_name = 'target_generate/pretrain_epoch'+str(epoch)+'.pkl'
             generate_samples(sess, generator, PRE_BATCH_SIZE, generated_num, file_name)
@@ -253,17 +266,19 @@ def main():
             zip(dis_x_train, dis_y_train), dis_batch_size, dis_num_epochs
         )
 
-        for batch in dis_batches:
-            try:
-                x_batch, y_batch = zip(*batch)
-                feed = {
-                    cnn.input_x: x_batch,
-                    cnn.input_y: y_batch,
-                    cnn.dropout_keep_prob: dis_dropout_keep_prob
-                }
-                _, step = sess.run([dis_train_op, dis_global_step], feed)
-            except ValueError:
-                pass
+        # for batch in dis_batches:
+        #     try:
+        #         x_batch, y_batch = zip(*batch)
+        #         feed = {
+        #             cnn.input_x: x_batch,
+        #             cnn.input_y: y_batch,
+        #             cnn.dropout_keep_prob: dis_dropout_keep_prob
+        #         }
+        #         _, step = sess.run([dis_train_op, dis_global_step], feed)
+        #     except ValueError:
+        #         pass
+
+
 
     rollout = ROLLOUT(generator, 0.8)
 
