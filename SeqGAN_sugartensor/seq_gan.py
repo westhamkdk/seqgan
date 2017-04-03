@@ -28,11 +28,15 @@ class Seq_gan():
         self.SEQ_LENGTH = 64
         self.PRE_START_TOKEN = 0
 
+        # self.PRE_EMB_DIM = 16
+        # self.PRE_HIDDEN_DIM = 32
+        # self.SEQ_LENGTH = 64
+
         self.PRE_EPOCH_NUM = 240
         # PRE_EPOCH_NUM = 5
         self.PRE_TRAIN_ITER = 1  # generator
         self.PRE_SEED = 88
-        self.batch_size = 32
+        self.batch_size = 8
         ##########################################################################################
 
         self.TOTAL_BATCH = 300
@@ -66,7 +70,7 @@ class Seq_gan():
 
         self.data_loader = Data_loader()
 
-        self.positive_x = self.data_loader.load_data(self.positive_file, self.batch_size)
+        self.positive_x, self.positive_y = self.data_loader.load_data(self.positive_file, self.batch_size)
 
 
     def main(self):
@@ -77,8 +81,12 @@ class Seq_gan():
         # load all data
 
         best_score = 1000 # might be replaced as iteration continues
-        lstm = LSTM_graph(self.positive_x, self.batch_size, self.melody_size, self.PRE_EMB_DIM, self.PRE_HIDDEN_DIM)
+        lstm = LSTM_graph(self.positive_x, self.positive_y, self.batch_size, self.melody_size, self.PRE_EMB_DIM, self.PRE_HIDDEN_DIM)
         lstm.start_training()
+
+
+        # lstm_eval = LSTM_graph(self.positive_x, self.positive_y, self.batch_size, self.melody_size, self.PRE_EMB_DIM, self.PRE_HIDDEN_DIM, mode="infer")
+        # lstm_eval.generate()
 
 
 
@@ -93,4 +101,5 @@ class Seq_gan():
         from seq_gan import Seq_gan
         seqgan = Seq_gan()
         seqgan.main()
+
 
