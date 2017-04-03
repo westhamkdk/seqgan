@@ -37,7 +37,7 @@ class LSTM(object):
 
         # processed for batch
         with tf.device("/cpu:0"):
-            inputs = tf.split(1, self.sequence_length, tf.nn.embedding_lookup(self.g_embeddings, self.x))
+            inputs = tf.split(tf.nn.embedding_lookup(self.g_embeddings, self.x),self.sequence_length, 1)
             self.processed_x = tf.pack(
                 [tf.squeeze(input_, [1]) for input_ in inputs])  # seq_length x batch_size x emb_dim
 

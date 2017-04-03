@@ -219,7 +219,7 @@ if __name__ == "__main__":
     io = MIDI_IO()
 
 
-    path1 = 'reinforce_batch50'
+    path1 = 'pretrain_small'
     with open(path1+'.pkl', 'rb') as files:
         res = pickle.load(files)
         print res

@@ -3,7 +3,7 @@ import numpy as np
 
 
 class LSTM_graph(object):
-    def __init__(self, x,y, num_batch, vocab_size, emb_dim, hidden_dim, mode = "train"):
+    def __init__(self, x,y, num_batch, vocab_size, emb_dim, hidden_dim, infer_shape = (1,1), mode = "train"):
 
         self.num_batch = num_batch
         self.emb_dim = emb_dim
@@ -15,22 +15,24 @@ class LSTM_graph(object):
             self.x = x
             self.y = y
 
-        elif mode =="infer":
-            self.x = tf.placeholder(tf.int32, shape=(1, None))
-            self.y = tf.placeholder(tf.int32, shape=(1, None))
-
-
+        elif mode == "infer":
+            self.x = tf.placeholder(tf.int32, shape=infer_shape)
+            self.y = tf.placeholder(tf.int32, shape=infer_shape)
 
         self.emb_x = tf.sg_emb(name='emb_x', voca_size=self.vocab_size, dim=self.emb_dim)  # (68,16)
-        self.X = self.x.sg_lookup(emb=self.emb_x)  # (8,63,16)
-        # print self.X
-        #
         self.emb_y = tf.sg_emb(name='emb_y', voca_size=self.vocab_size, dim=self.emb_dim)  # (68,16)
+        self.X = self.x.sg_lookup(emb=self.emb_x)  # (8,63,16)
         self.Y = self.y.sg_lookup(emb=self.emb_y)  # (8,63,16)
 
-        self.lstm_layer = self.X.sg_lstm(in_dim=self.emb_dim, dim=self.vocab_size)  # (8, 63, 68)
-        # self.lstm_layer = self.X.sg_lstm(in_dim=self.emb_dim, dim=self.vocab_size, last_only = True)
-        self.preds = self.lstm_layer.sg_argmax()
+
+        if mode == "train":
+            self.lstm_layer = self.X.sg_lstm(in_dim=self.emb_dim, dim=self.vocab_size)  # (8, 63, 68)
+        elif mode == "infer":
+            self.lstm_layer = self.X.sg_lstm(in_dim=self.emb_dim, dim=self.vocab_size, last_only=True)
+            self.log_prob = tf.log(self.lstm_layer.sg_softmax())
+
+            self.next_token = tf.cast(tf.reshape(tf.multinomial(self.log_prob, 1), [1,infer_shape[0]]), tf.int32)
+            self.preds = self.lstm_layer.sg_argmax()
 
         if mode == "train":
             self.loss = self.lstm_layer.sg_ce(target=self.y)
@@ -39,24 +41,23 @@ class LSTM_graph(object):
             self.reduced_loss = (self.loss.sg_sum()) / (self.istarget.sg_sum() + 0.0000001)
             tf.sg_summary_loss(self.reduced_loss, "reduced_loss")
 
+
+
+
     def start_training(self):
         tf.sg_train(optim='Adam', lr=0.0001, loss=self.reduced_loss,eval_metric=[self.reduced_loss], ep_size=self.num_batch, save_dir='pre_small', max_ep=240,
                     early_stop=False)
 
-    def generate(self):
+    def generate(self, prev_midi):
         with tf.Session() as sess:
             tf.sg_init(sess)
 
             saver = tf.train.Saver()
             saver.restore(sess, tf.train.latest_checkpoint('save/train'))
-            print ("Restored!")
 
 
-            for i in range(5):
-                norm = [[2,3]]
-                norm = np.asarray(norm)
-                out = sess.run(self.preds, {self.x : norm,self.y :norm})
-                print out
+            out = sess.run(self.next_token, {self.x: prev_midi})
+            return out
 
 
 

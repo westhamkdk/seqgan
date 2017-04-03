@@ -72,6 +72,8 @@ class TextCNN(object):
                     strides=[1, 1, 1, 1],
                     padding='VALID',
                     name="pool")
+
+                print pooled
                 pooled_outputs.append(pooled)
 
         # Combine all the pooled features
