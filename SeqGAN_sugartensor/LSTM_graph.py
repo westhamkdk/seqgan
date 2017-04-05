@@ -3,13 +3,14 @@ import numpy as np
 
 
 class LSTM_graph(object):
-    def __init__(self, x,y, num_batch, vocab_size, emb_dim, hidden_dim, infer_shape = (1,1), mode = "train"):
+    def __init__(self, x,y, num_batch, vocab_size, emb_dim, hidden_dim, max_ep = 240, infer_shape = (1,1), mode = "train"):
 
         self.num_batch = num_batch
         self.emb_dim = emb_dim
         self.hidden_dim = hidden_dim
         self.vocab_size = vocab_size
         self.max_len_infer = 512
+        self.max_ep = max_ep
 
         if mode == "train":
             self.x = x
@@ -27,10 +28,12 @@ class LSTM_graph(object):
 
         if mode == "train":
             self.lstm_layer = self.X.sg_lstm(in_dim=self.emb_dim, dim=self.vocab_size)  # (8, 63, 68)
+
         elif mode == "infer":
             self.lstm_layer = self.X.sg_lstm(in_dim=self.emb_dim, dim=self.vocab_size, last_only=True)
             self.log_prob = tf.log(self.lstm_layer.sg_softmax())
 
+            # next_token: select by distribution probability, preds: select by argmax
             self.next_token = tf.cast(tf.reshape(tf.multinomial(self.log_prob, 1), [1,infer_shape[0]]), tf.int32)
             self.preds = self.lstm_layer.sg_argmax()
 
@@ -45,7 +48,7 @@ class LSTM_graph(object):
 
 
     def start_training(self):
-        tf.sg_train(optim='Adam', lr=0.0001, loss=self.reduced_loss,eval_metric=[self.reduced_loss], ep_size=self.num_batch, save_dir='pre_small', max_ep=240,
+        tf.sg_train(optim='Adam', lr=0.0001, loss=self.reduced_loss,eval_metric=[self.reduced_loss], ep_size=self.num_batch, save_dir='save/train/small', max_ep=self.max_ep,
                     early_stop=False)
 
     def generate(self, prev_midi):
@@ -53,9 +56,9 @@ class LSTM_graph(object):
             tf.sg_init(sess)
 
             saver = tf.train.Saver()
-            saver.restore(sess, tf.train.latest_checkpoint('save/train'))
+            saver.restore(sess, tf.train.latest_checkpoint('save/train/small'))
 
-
+            # KDK: choose self.next_token or self.preds
             out = sess.run(self.next_token, {self.x: prev_midi})
             return out
 

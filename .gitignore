@@ -1,1 +1,2 @@
-outputs/
+outputs/*.*
+SeqGAN_sugartensor/save/train/*.*

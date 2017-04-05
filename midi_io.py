@@ -13,12 +13,12 @@ import pandas as pd
 class MIDI_IO():
     def __init__(self):
         self.note_info_path = 'note_mapping_dict.pkl'
-        self.midi_training_path = "MLE_SeqGAN/save/midi_real.pkl"
-        self.midi_test_path = "MLE_SeqGAN/target_generate/midi_test.pkl"
-        self.midi_training_path_trans = "MLE_SeqGAN/save/midi_trans.pkl"
-        self.midi_test_path_trans = "MLE_SeqGAN/target_generate/midi_trans.pkl"
+        self.midi_training_path = "SeqGAN_sugartensor/save/midi_real.pkl"
+        # self.midi_test_path = "MLE_SeqGAN/target_generate/midi_test.pkl"
+        self.midi_training_path_trans = "SeqGAN_sugartensor/save/midi_trans.pkl"
+        # self.midi_test_path_trans = "MLE_SeqGAN/target_generate/midi_trans.pkl"
 
-        if not os.path.exists(self.note_info_path):
+        if not os.path.exists(self.midi_training_path_trans):
             self.load_all_midi_data()
         else:
             with open(self.note_info_path, "rb") as openfile:
@@ -214,28 +214,26 @@ class MIDI_IO():
 
         return raw_list
 
+    def trans_generated_to_midi(self, path, file_name):
+
+        with open(path, 'rb') as files:
+            res = pickle.load(files)
+            print res
+
+        raws = io.trans_trans_songs_to_raw(res)
+
+        index = 0
+        for raw in raws:
+            path = 'outputs/' + file_name + "/" + '{}.mid'.format(index)
+            io.seq_to_midi_file(raw, path)
+            index += 1
+
 
 if __name__ == "__main__":
     io = MIDI_IO()
 
+    # io.trans_generated_to_midi("pretrain_small")
 
-    path1 = 'pretrain_small'
-    with open(path1+'.pkl', 'rb') as files:
-        res = pickle.load(files)
-        print res
-
-    raws =  io.trans_trans_songs_to_raw(res)
-
-
-    index = 0
-    for raw in raws:
-        path = 'outputs/'+path1+"/"+'{}.mid'.format(index)
-        io.seq_to_midi_file(raw, path)
-        index+=1
-
-    # test_raw = [-2,-2,-1,37,38,38,39,39,40,41]
-    #
-    # print io.raw_note_to_trans(test_raw)
 
 
 
