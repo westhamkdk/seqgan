@@ -20,10 +20,15 @@ class LSTM_graph(object):
             self.x = tf.placeholder(tf.int32, shape=infer_shape)
             self.y = tf.placeholder(tf.int32, shape=infer_shape)
 
-        self.emb_x = tf.sg_emb(name='emb_x', voca_size=self.vocab_size, dim=self.emb_dim)  # (68,16)
-        self.emb_y = tf.sg_emb(name='emb_y', voca_size=self.vocab_size, dim=self.emb_dim)  # (68,16)
-        self.X = self.x.sg_lookup(emb=self.emb_x)  # (8,63,16)
-        self.Y = self.y.sg_lookup(emb=self.emb_y)  # (8,63,16)
+        self.emb_x = tf.Variable(tf.random_uniform([self.vocab_size, self.emb_dim], -1.0, 1.0), name='emb_x')
+        self.emb_y = tf.Variable(tf.random_uniform([self.vocab_size, self.emb_dim], -1.0, 1.0), name='emb_y')
+        self.X = tf.nn.embedding_lookup(self.emb_x, self.x)
+        self.Y = tf.nn.embedding_lookup(self.emb_y, self.y)
+
+        # self.emb_x = tf.sg_emb(name='emb_x', voca_size=self.vocab_size, dim=self.emb_dim)  # (68,16)
+        # self.emb_y = tf.sg_emb(name='emb_y', voca_size=self.vocab_size, dim=self.emb_dim)  # (68,16)
+        # self.X = self.x.sg_lookup(emb=self.emb_x)  # (8,63,16)
+        # self.Y = self.y.sg_lookup(emb=self.emb_y)  # (8,63,16)
 
 
         if mode == "train":

@@ -67,7 +67,6 @@ class CNN_graph(object):
         self.Y = self.y.sg_lookup(emb=self.emb_y)  # (8,63,16)
 
 
-
         pooled = []
         with tf.sg_context(act='relu'):
             isFirst = True
@@ -76,6 +75,7 @@ class CNN_graph(object):
                 layer = self.X.sg_conv1d(size= filter_size, dim=num_filter, pad='VALID')
                 layer = layer.sg_pool1d(size=sequence_length-filter_size+1, stride = 1)
 
+                print layer
                 pooled.append(layer)
 
         self.h_pool = tf.concat(pooled, 2)

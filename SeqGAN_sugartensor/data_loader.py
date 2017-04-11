@@ -13,12 +13,18 @@ class Data_loader():
             # length of list : 1024
             raw_data = np.asarray(np.load(output_file))
 
+            print raw_data.shape
 
+            # actual sequence length : 63
             raw_x = raw_data[:,:-1]
             raw_y = raw_data[:,1:]
 
 
+
+
             x_q, y_q = tf.train.slice_input_producer([tf.convert_to_tensor(raw_x, tf.int32), tf.convert_to_tensor(raw_y, tf.int32)])
+
+
 
 
             X, Y = tf.train.shuffle_batch([x_q, y_q],

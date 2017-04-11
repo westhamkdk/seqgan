@@ -16,8 +16,6 @@ from CNN_graph import CNN_graph
 
 tf.sg_verbosity(10)
 
-
-
 class Seq_gan():
 
     def __init__(self):
@@ -109,7 +107,6 @@ class Seq_gan():
             pickle.dump(generated_samples, fout)
 
         # pretrain discriminator
-        tf.reset_default_graph()
         X,Y = self.data_loader.load_data_and_labels(self.positive_file, self.negative_file, self.batch_size)
         cnn = CNN_graph(X,Y,self.SEQ_LENGTH, 2, self.melody_size, self.dis_embedding_dim, self.dis_filter_sizes, self.dis_num_filters, self.dis_num_epochs, self.batch_size)
         cnn.start_training()
