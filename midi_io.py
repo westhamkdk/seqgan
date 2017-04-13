@@ -214,9 +214,9 @@ class MIDI_IO():
 
         return raw_list
 
-    def trans_generated_to_midi(self, path, file_name):
+    def trans_generated_to_midi(self, file_name):
 
-        with open(path, 'rb') as files:
+        with open(file_name+".pkl", 'rb') as files:
             res = pickle.load(files)
             print res
 
@@ -232,7 +232,7 @@ class MIDI_IO():
 if __name__ == "__main__":
     io = MIDI_IO()
 
-    # io.trans_generated_to_midi("pretrain_small")
+    io.trans_generated_to_midi("pretrain_small")
 
 
 

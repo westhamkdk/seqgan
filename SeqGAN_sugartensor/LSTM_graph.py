@@ -20,8 +20,8 @@ class LSTM_graph(object):
             self.x = tf.placeholder(tf.int32, shape=infer_shape)
             self.y = tf.placeholder(tf.int32, shape=infer_shape)
 
-        self.emb_x = tf.Variable(tf.random_uniform([self.vocab_size, self.emb_dim], -1.0, 1.0), name='emb_x')
-        self.emb_y = tf.Variable(tf.random_uniform([self.vocab_size, self.emb_dim], -1.0, 1.0), name='emb_y')
+        self.emb_x = tf.Variable(tf.random_uniform([self.vocab_size, self.emb_dim], 0.0, 1.0), name='emb_x')
+        self.emb_y = tf.Variable(tf.random_uniform([self.vocab_size, self.emb_dim], 0.0, 1.0), name='emb_y')
         self.X = tf.nn.embedding_lookup(self.emb_x, self.x)
         self.Y = tf.nn.embedding_lookup(self.emb_y, self.y)
 
@@ -35,10 +35,14 @@ class LSTM_graph(object):
             self.lstm_layer = self.X.sg_lstm(in_dim=self.emb_dim, dim=self.vocab_size)  # (8, 63, 68)
 
         elif mode == "infer":
-            self.lstm_layer = self.X.sg_lstm(in_dim=self.emb_dim, dim=self.vocab_size, last_only=True)
-            self.log_prob = tf.log(self.lstm_layer.sg_softmax())
+            self.lstm_layer = self.X.sg_lstm(in_dim=self.emb_dim, dim=self.vocab_size, last_only = True)
+            self.log_prob = tf.log(self.lstm_layer)
+
 
             # next_token: select by distribution probability, preds: select by argmax
+
+
+            self.multinormed = tf.multinomial(self.log_prob, 1)
             self.next_token = tf.cast(tf.reshape(tf.multinomial(self.log_prob, 1), [1,infer_shape[0]]), tf.int32)
             self.preds = self.lstm_layer.sg_argmax()
 
@@ -63,8 +67,14 @@ class LSTM_graph(object):
             saver = tf.train.Saver()
             saver.restore(sess, tf.train.latest_checkpoint('save/train/small'))
 
+
             # KDK: choose self.next_token or self.preds
             out = sess.run(self.next_token, {self.x: prev_midi})
+            # tf.Print(self.log_prob, [self.log_prob], message="This is a :").eval()
+
+
+
+
             return out
 
 

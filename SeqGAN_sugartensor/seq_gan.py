@@ -35,6 +35,7 @@ class Seq_gan():
 
         self.PRE_TRAIN_ITER = 1  # generator
         self.PRE_SEED = 88
+
         self.batch_size = 8
         ##########################################################################################
 
@@ -79,8 +80,8 @@ class Seq_gan():
         ### pretrain step
 
         # pretrain generator
-        lstm = LSTM_graph(self.positive_x, self.positive_y, self.batch_size, self.melody_size, self.PRE_EMB_DIM, self.PRE_HIDDEN_DIM, self.PRE_EPOCH_NUM)
-        lstm.start_training()
+        # lstm = LSTM_graph(self.positive_x, self.positive_y, self.batch_size, self.melody_size, self.PRE_EMB_DIM, self.PRE_HIDDEN_DIM, self.PRE_EPOCH_NUM)
+        # lstm.start_training()
 
         # generate sequence from generator
         generated_samples = []
@@ -99,6 +100,9 @@ class Seq_gan():
                 last_token = np.transpose(last_token)
 
                 result = np.column_stack((result, last_token))
+
+                print result
+
             generated_samples.extend(result)
 
         print generated_samples
@@ -107,9 +111,9 @@ class Seq_gan():
             pickle.dump(generated_samples, fout)
 
         # pretrain discriminator
-        X,Y = self.data_loader.load_data_and_labels(self.positive_file, self.negative_file, self.batch_size)
-        cnn = CNN_graph(X,Y,self.SEQ_LENGTH, 2, self.melody_size, self.dis_embedding_dim, self.dis_filter_sizes, self.dis_num_filters, self.dis_num_epochs, self.batch_size)
-        cnn.start_training()
+        # X,Y = self.data_loader.load_data_and_labels(self.positive_file, self.negative_file, self.batch_size)
+        # cnn = CNN_graph(X,Y,self.SEQ_LENGTH, 2, self.melody_size, self.dis_embedding_dim, self.dis_filter_sizes, self.dis_num_filters, self.dis_num_epochs, self.batch_size)
+        # cnn.start_training()
 
 
 
