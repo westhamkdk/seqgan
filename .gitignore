@@ -1,3 +1,4 @@
 outputs/*.*
 SeqGAN_sugartensor/save/train/*.*
 SeqGAN_sugartensor/pretrain/*.*
+*.pkl
