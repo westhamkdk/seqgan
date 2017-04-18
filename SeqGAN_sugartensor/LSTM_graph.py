@@ -12,39 +12,47 @@ class LSTM_graph(object):
         self.max_len_infer = 512
         self.max_ep = max_ep
 
+        # reuse = len([t for t in tf.global_variables() if t.name.startswith('gen')]) > 0
+        reuse = (mode=='infer')
+
         if mode == "train":
             self.x = x
             self.y = y
-
         elif mode == "infer":
             self.x = tf.placeholder(tf.int32, shape=infer_shape)
             self.y = tf.placeholder(tf.int32, shape=infer_shape)
 
-        self.emb_x = tf.Variable(tf.random_uniform([self.vocab_size, self.emb_dim], 0.0, 1.0), name='emb_x')
-        self.emb_y = tf.Variable(tf.random_uniform([self.vocab_size, self.emb_dim], 0.0, 1.0), name='emb_y')
-        self.X = tf.nn.embedding_lookup(self.emb_x, self.x)
-        self.Y = tf.nn.embedding_lookup(self.emb_y, self.y)
-
-        # self.emb_x = tf.sg_emb(name='emb_x', voca_size=self.vocab_size, dim=self.emb_dim)  # (68,16)
-        # self.emb_y = tf.sg_emb(name='emb_y', voca_size=self.vocab_size, dim=self.emb_dim)  # (68,16)
-        # self.X = self.x.sg_lookup(emb=self.emb_x)  # (8,63,16)
-        # self.Y = self.y.sg_lookup(emb=self.emb_y)  # (8,63,16)
+        with tf.variable_scope("gen_embs", reuse = reuse):
+            self.emb_x = tf.get_variable("emb_x", [self.vocab_size, self.emb_dim])
+            self.emb_y = tf.get_variable("emb_y", [self.vocab_size, self.emb_dim])
+            self.X = tf.nn.embedding_lookup(self.emb_x, self.x)
+            self.Y = tf.nn.embedding_lookup(self.emb_y, self.y)
 
 
-        if mode == "train":
-            self.lstm_layer = self.X.sg_lstm(in_dim=self.emb_dim, dim=self.vocab_size)  # (8, 63, 68)
+        with tf.sg_context(name='gen', reuse = reuse):
+            #     self.emb_x = tf.Variable(tf.random_uniform([self.vocab_size, self.emb_dim], 0.0, 1.0), name="emb_x")
+            #     self.emb_y = tf.Variable(tf.random_uniform([self.vocab_size, self.emb_dim], 0.0, 1.0), name="emb_y")
+            # self.emb_x = tf.sg_emb(name='emb_x', voca_size=self.vocab_size, dim=self.emb_dim)  # (68,16)
+            # self.emb_y = tf.sg_emb(name='emb_y', voca_size=self.vocab_size, dim=self.emb_dim)  # (68,16)
+            # self.X = self.x.sg_lookup(emb=self.emb_x)  # (8,63,16)
+            # self.Y = self.y.sg_lookup(emb=self.emb_y)  # (8,63,16)
 
-        elif mode == "infer":
-            self.lstm_layer = self.X.sg_lstm(in_dim=self.emb_dim, dim=self.vocab_size, last_only = True)
-            self.log_prob = tf.log(self.lstm_layer)
+            if mode == "train":
+                self.lstm_layer = self.X.sg_lstm(in_dim=self.emb_dim, dim=self.vocab_size, name="lstm")  # (8, 63, 68)
+
+            elif mode == "infer":
 
 
-            # next_token: select by distribution probability, preds: select by argmax
+                self.lstm_layer = self.X.sg_lstm(in_dim=self.emb_dim, dim=self.vocab_size, last_only = True, name="lstm")
+                self.log_prob = tf.log(self.lstm_layer)
 
 
-            self.multinormed = tf.multinomial(self.log_prob, 1)
-            self.next_token = tf.cast(tf.reshape(tf.multinomial(self.log_prob, 1), [1,infer_shape[0]]), tf.int32)
-            self.preds = self.lstm_layer.sg_argmax()
+                # next_token: select by distribution probability, preds: select by argmax
+
+
+                self.multinormed = tf.multinomial(self.log_prob, 1)
+                self.next_token = tf.cast(tf.reshape(tf.multinomial(self.log_prob, 1), [1,infer_shape[0]]), tf.int32)
+                self.preds = self.lstm_layer.sg_argmax()
 
         if mode == "train":
             self.loss = self.lstm_layer.sg_ce(target=self.y)
@@ -63,21 +71,12 @@ class LSTM_graph(object):
     def generate(self, prev_midi):
         with tf.Session() as sess:
             tf.sg_init(sess)
-
-            saver = tf.train.Saver()
-            saver.restore(sess, tf.train.latest_checkpoint('save/train/small'))
-
-
+            # saver = tf.train.Saver()
+            # saver.restore(sess, tf.train.latest_checkpoint('save/train/small'))
             # KDK: choose self.next_token or self.preds
+            # out = sess.run(self.next_token, {self.x: prev_midi})
+            tf.sg_restore(sess, tf.train.latest_checkpoint('save/train/small'))
             out = sess.run(self.next_token, {self.x: prev_midi})
-            # tf.Print(self.log_prob, [self.log_prob], message="This is a :").eval()
-
-
-
 
             return out
-
-
-
-
 

@@ -31,12 +31,12 @@ class Seq_gan():
         # self.PRE_HIDDEN_DIM = 32
         # self.SEQ_LENGTH = 64
 
-        self.PRE_EPOCH_NUM = 240
+        self.PRE_EPOCH_NUM = 1
 
         self.PRE_TRAIN_ITER = 1  # generator
         self.PRE_SEED = 88
 
-        self.batch_size = 8
+        self.batch_size = 16
         ##########################################################################################
 
         self.TOTAL_BATCH = 300
@@ -80,8 +80,8 @@ class Seq_gan():
         ### pretrain step
 
         # pretrain generator
-        # lstm = LSTM_graph(self.positive_x, self.positive_y, self.batch_size, self.melody_size, self.PRE_EMB_DIM, self.PRE_HIDDEN_DIM, self.PRE_EPOCH_NUM)
-        # lstm.start_training()
+        lstm = LSTM_graph(self.positive_x, self.positive_y, self.batch_size, self.melody_size, self.PRE_EMB_DIM, self.PRE_HIDDEN_DIM, self.PRE_EPOCH_NUM)
+        lstm.start_training()
 
         # generate sequence from generator
         generated_samples = []
@@ -92,7 +92,7 @@ class Seq_gan():
 
             for i in range(64):
                 print i
-                tf.reset_default_graph()
+                # tf.reset_default_graph()
                 lstm_eval = LSTM_graph(self.positive_x, self.positive_y, self.batch_size, self.melody_size,
                                        self.PRE_EMB_DIM,
                                        self.PRE_HIDDEN_DIM, infer_shape=result.shape, mode="infer")
@@ -111,9 +111,9 @@ class Seq_gan():
             pickle.dump(generated_samples, fout)
 
         # pretrain discriminator
-        # X,Y = self.data_loader.load_data_and_labels(self.positive_file, self.negative_file, self.batch_size)
-        # cnn = CNN_graph(X,Y,self.SEQ_LENGTH, 2, self.melody_size, self.dis_embedding_dim, self.dis_filter_sizes, self.dis_num_filters, self.dis_num_epochs, self.batch_size)
-        # cnn.start_training()
+        X,Y = self.data_loader.load_data_and_labels(self.positive_file, self.negative_file, self.batch_size)
+        cnn = CNN_graph(X,Y,self.SEQ_LENGTH, 2, self.melody_size, self.dis_embedding_dim, self.dis_filter_sizes, self.dis_num_filters, self.dis_num_epochs, self.batch_size)
+        cnn.start_training()
 
 
 

@@ -231,8 +231,7 @@ class MIDI_IO():
 
 if __name__ == "__main__":
     io = MIDI_IO()
-
-    io.trans_generated_to_midi("pretrain_small")
+    io.trans_generated_to_midi("pretrain_small_longer")
 
 
 
