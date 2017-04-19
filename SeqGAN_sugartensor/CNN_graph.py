@@ -84,18 +84,12 @@ class CNN_graph(object):
 
 
         # self.X = self.X.sg_flatten().sg_highway(layer_size = 1, size = self.X.get_shape()[1], bias = 0).sg_bypass(dout=10)
-        print self.h_pool_flat
-        print self.h_pool_flat.get_shape()[1]
         self.highway = self.h_pool_flat.sg_highway(layer_size = 1, size = self.h_pool_flat.get_shape()[1], bias=0).sg_bypass(dout=0.9)
         self.logit = self.highway.sg_dense(dim=num_classes, act='softmax')
-
-        print self.logit
         self.predictions = self.logit.sg_argmax()
-        print self.y
 
         if mode == "train":
             self.loss = self.logit.sg_ce(target=self.y, one_hot=True)
-
             correct_predictions = tf.equal(self.predictions, tf.argmax(self.y,1))
             self.accuracy = tf.reduce_mean(tf.cast(correct_predictions, "float"), name="accuracy")
             tf.sg_summary_loss(self.accuracy, "accuracy")

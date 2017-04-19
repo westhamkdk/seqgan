@@ -39,10 +39,12 @@ class LSTM_graph(object):
 
             if mode == "train":
                 self.lstm_layer = self.X.sg_lstm(in_dim=self.emb_dim, dim=self.vocab_size, name="lstm")  # (8, 63, 68)
+                self.test = self.lstm_layer.sg_softmax(name="testtt")
+
+                print "mazum??"
+                print self.test
 
             elif mode == "infer":
-
-
                 self.lstm_layer = self.X.sg_lstm(in_dim=self.emb_dim, dim=self.vocab_size, last_only = True, name="lstm")
                 self.log_prob = tf.log(self.lstm_layer)
 
@@ -60,8 +62,6 @@ class LSTM_graph(object):
 
             self.reduced_loss = (self.loss.sg_sum()) / (self.istarget.sg_sum() + 0.0000001)
             tf.sg_summary_loss(self.reduced_loss, "reduced_loss")
-
-
 
 
     def start_training(self):

@@ -82,6 +82,9 @@ class ROLLOUT(object):
             for given_num in range(1, 64):
                 feed = {self.x: input_x, self.given_num: given_num}
                 outputs = sess.run([self.gen_x], feed)
+
+                # for sampled output
+                # get y prediction value
                 generated_poem = outputs[0]  # batch_size x seq_length
                 feed = {cnn.input_x: generated_poem, cnn.dropout_keep_prob: 1.0}
                 ypred_for_auc = sess.run(cnn.ypred_for_auc, feed)

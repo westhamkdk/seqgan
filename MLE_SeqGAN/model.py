@@ -117,12 +117,19 @@ class LSTM(object):
         #  Unsupervised Training
         #######################################################################################################
 
+
+        # RL loss value
+
+        # x is samples
+        # predictions * rewards ????
+        # reduce sum
         self.g_loss = -tf.reduce_sum(
             tf.reduce_sum(
                 tf.one_hot(tf.to_int32(tf.reshape(self.x, [-1])), self.num_emb, 1.0, 0.0) * tf.log(
                     tf.clip_by_value(tf.reshape(self.g_predictions, [-1, self.num_emb]), 1e-20, 1.0)
                 ), 1) * tf.reshape(self.rewards, [-1])
         )
+
 
         g_opt = self.g_optimizer(self.learning_rate)
 

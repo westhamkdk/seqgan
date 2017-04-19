@@ -8,7 +8,7 @@ import pickle
 import os
 from LSTM_graph import  LSTM_graph
 from CNN_graph import CNN_graph
-
+# from RL import RL
 
 # Sequence length
 # Variable length of sequcne should be supported
@@ -52,8 +52,8 @@ class Seq_gan():
         self.dis_l2_reg_lambda = 0.2
 
         # Training parameters
-        self.dis_num_epochs = 20
-        # dis_num_epochs = 1
+        # self.dis_num_epochs = 20
+        self.dis_num_epochs = 1
 
         # dis_alter_epoch = 50
         self.dis_alter_epoch = 25
@@ -65,6 +65,7 @@ class Seq_gan():
         self.generated_num = 40
 
         self.melody_size = 68
+        self.RL_update_rate = 0.8
 
         self.data_loader = Data_loader()
 
@@ -87,22 +88,7 @@ class Seq_gan():
         generated_samples = []
         # for _ in range((int(self.generated_num/self.batch_size))):
         for _ in range(1):
-
-            result =  np.random.randint(self.melody_size, size=(self.batch_size, 1))
-
-            for i in range(64):
-                print i
-                # tf.reset_default_graph()
-                lstm_eval = LSTM_graph(self.positive_x, self.positive_y, self.batch_size, self.melody_size,
-                                       self.PRE_EMB_DIM,
-                                       self.PRE_HIDDEN_DIM, infer_shape=result.shape, mode="infer")
-                last_token = lstm_eval.generate(result)
-                last_token = np.transpose(last_token)
-
-                result = np.column_stack((result, last_token))
-
-                print result
-
+            result = self.generate_samples(10)
             generated_samples.extend(result)
 
         print generated_samples
@@ -111,11 +97,34 @@ class Seq_gan():
             pickle.dump(generated_samples, fout)
 
         # pretrain discriminator
-        X,Y = self.data_loader.load_data_and_labels(self.positive_file, self.negative_file, self.batch_size)
-        cnn = CNN_graph(X,Y,self.SEQ_LENGTH, 2, self.melody_size, self.dis_embedding_dim, self.dis_filter_sizes, self.dis_num_filters, self.dis_num_epochs, self.batch_size)
-        cnn.start_training()
+        # X,Y = self.data_loader.load_data_and_labels(self.positive_file, self.negative_file, self.batch_size)
+        # cnn = CNN_graph(X,Y,self.SEQ_LENGTH, 2, self.melody_size, self.dis_embedding_dim, self.dis_filter_sizes, self.dis_num_filters, self.dis_num_epochs, self.batch_size)
+        # cnn.start_training()
+
+        ## RL start
+        # rollout = RL(lstm, 0.8)
 
 
+    def generate_next_sample(self, input):
+        lstm_eval = LSTM_graph(input, input, self.batch_size, self.melody_size,
+                               self.PRE_EMB_DIM,
+                               self.PRE_HIDDEN_DIM, infer_shape=input.shape, mode="infer")
+        last_token = lstm_eval.generate(input)
+        last_token = np.transpose(last_token)
+
+        result = np.column_stack([input, last_token])
+
+        return result, last_token
+
+
+    def generate_samples(self, seq_length = 63):
+        result = np.random.randint(self.melody_size, size=(self.batch_size, 1))
+
+        for i in range(seq_length):
+            print i
+            result, _ = self.generate_next_sample(result)
+
+        return result
 
     if __name__ == '__main__':
         from seq_gan import Seq_gan
