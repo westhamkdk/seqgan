@@ -230,8 +230,10 @@ class ROLLOUT(object):
         return unit
 
     def update_output_unit(self):
-        self.Wo = self.update_rate * self.Wo + (1 - self.update_rate) * tf.identity(self.lstm.Wo)
-        self.bo = self.update_rate * self.bo + (1 - self.update_rate) * tf.identity(self.lstm.bo)
+        self.Wo = self.update_rate * self.Wo + \
+                  (1 - self.update_rate) * tf.identity(self.lstm.Wo)
+        self.bo = self.update_rate * self.bo + \
+                  (1 - self.update_rate) * tf.identity(self.lstm.bo)
 
         def unit(hidden_memory_tuple):
             hidden_state, c_prev = tf.unpack(hidden_memory_tuple)
